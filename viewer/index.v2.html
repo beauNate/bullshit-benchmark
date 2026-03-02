@@ -1949,11 +1949,17 @@ function renderOrgGuide(rows) {
   ).join("");
 }
 
+function modelChartRowsForFocus(rows) {
+  const focusOrg = S.modelChartFocusOrg || "all";
+  if (focusOrg === "all") return rows;
+  return rows.filter(r => modelOrg(r) === focusOrg);
+}
+
 // ====== RENDER: Model Bars (stacked) ======
-function renderModelBars(filtered) {
+function renderModelBars(modelChartRows) {
   const segLabel = p => p>=10?`${p.toFixed(1)}%`:p>=3?`${Math.round(p)}%`:"";
   const focusOrg = S.modelChartFocusOrg || "all";
-  const byModel = groupBy(filtered, modelKey);
+  const byModel = groupBy(modelChartRows, modelKey);
   const rows = [...byModel.entries()].map(([k,modelRows])=>{
     const s=summarize(modelRows), sample=modelRows[0]||{};
     return { key:k, label:prettyModel(sample), org:modelOrg(sample), ...s };
@@ -1966,7 +1972,7 @@ function renderModelBars(filtered) {
   );
   const summaryEl = document.getElementById("modelAvgSummary");
   if (summaryEl) {
-    const overall = summarize(filtered);
+    const overall = summarize(modelChartRows);
     const selectedDomain = document.getElementById("filterDomainGroup")?.value || "all";
     const scopeLabel = domainFilterLabel(selectedDomain);
     const focusHtml = focusOrg !== "all"
@@ -1979,6 +1985,11 @@ function renderModelBars(filtered) {
       <span class="model-avg-pill amber">Amber ${fmtPct(overall.amberRate)}</span>
       <span class="model-avg-pill red">Red ${fmtPct(overall.redRate)}</span>
     `;
+  }
+  if (!rows.length) {
+    document.getElementById("modelBars").innerHTML =
+      `<p class="subtle" style="margin:8px 0;">No models match the current filters.</p>`;
+    return;
   }
   document.getElementById("modelBars").innerHTML=rows.map((r,i)=>{
     const sel=S.drilldown;
@@ -2004,6 +2015,7 @@ function renderDrilldown(filtered) {
   const body=document.getElementById("drilldownBody");
   if(!S.drilldown) { panel.classList.add("hidden-block"); body.innerHTML=""; return; }
   const matches=filtered.filter(r=>modelKey(r)===S.drilldown.mk&&catKey(r)===S.drilldown.cat);
+  if(!matches.length) { S.drilldown=null; panel.classList.add("hidden-block"); body.innerHTML=""; return; }
   const meta=CATEGORY_META[S.drilldown.cat];
   document.getElementById("drilldownTitle").textContent=`${prettyModel(matches[0]||S.rows.find(r=>modelKey(r)===S.drilldown.mk)||{})} \u00b7 ${meta.label}`;
   document.getElementById("drilldownMeta").textContent=`${matches.length} responses`;
@@ -3192,6 +3204,7 @@ function renderAll() {
   if(!S.rows.length) return;
   const cfg = currentBenchmarkConfig();
   const filtered = applyFilters(S.rows);
+  const modelChartRows = modelChartRowsForFocus(filtered);
   S.filteredRows = filtered;
   if (cfg.showDomainGroup) renderDomainBar();
   const el = document.getElementById("dataState");
@@ -3200,8 +3213,8 @@ function renderAll() {
   refreshTopVariantToggle();
   renderKpis(filtered);
   renderOrgGuide(filtered);
-  renderModelBars(filtered);
-  renderDrilldown(filtered);
+  renderModelBars(modelChartRows);
+  renderDrilldown(modelChartRows);
   if (cfg.showDomainHeatmap) renderDomainHeatmap(filtered);
   if (cfg.showDomainInsights) renderDomainInsights();
   renderDifficultyBreakdown(filtered);
