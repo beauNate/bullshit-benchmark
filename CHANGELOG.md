@@ -11,10 +11,12 @@ All notable benchmark, data, and viewer changes are tracked in this file.
   - `meta-llama/llama-3.1-8b-instruct`
 - Added canonical launch-date metadata for the Meta models above so release-date and model-age charts include them.
 - Added an MIT license at the repo root and surfaced the license in the README so GitHub detects the project license directly.
+- Added canonical model-size metadata in `data/model_metadata/model_params.csv` and published it into the viewer datasets.
 
 ### Changed
 - Refreshed published viewer datasets in `data/latest/*` and `data/v2/latest/*` so [viewer/index.html](viewer/index.html) and [viewer/index.v2.html](viewer/index.v2.html) surface the new Meta rows.
 - Refreshed the GitHub-facing README chart screenshots in `docs/images/*` after publish so the static landing-page visuals match the latest viewer data.
+- Added model-size support to the viewers, including a v2 size-vs-detection scatter and a `Model Size` leaderboard column.
 
 ## [2.0.2] - 2026-03-05
 

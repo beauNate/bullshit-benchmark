@@ -14,6 +14,7 @@
   "exports": {
     "leaderboard_csv": "data/latest/leaderboard.csv",
     "leaderboard_with_launch_csv": "data/latest/leaderboard_with_launch.csv",
-    "model_launch_dates_csv": "data/latest/model_launch_dates.csv"
+    "model_launch_dates_csv": "data/latest/model_launch_dates.csv",
+    "model_params_csv": "data/latest/model_params.csv"
   }
 }

@@ -90,7 +90,7 @@ AGENT_BUCKETS: list[tuple[str, set[str]]] = [
     ("collector_openai", {"openai"}),
     ("collector_anthropic", {"anthropic"}),
     ("collector_google", {"google"}),
-    ("collector_frontier_other", {"x-ai", "mistralai", "prime-intellect"}),
+    ("collector_frontier_other", {"x-ai", "mistralai", "prime-intellect", "meta", "meta-llama"}),
     (
         "collector_apac_longtail",
         {
@@ -119,6 +119,8 @@ FIRST_PARTY_DOMAINS: dict[str, set[str]] = {
     },
     "x-ai": {"x.ai"},
     "mistralai": {"mistral.ai"},
+    "meta": {"ai.meta.com", "about.fb.com", "meta.com"},
+    "meta-llama": {"ai.meta.com", "about.fb.com", "meta.com"},
     "prime-intellect": {"primeintellect.ai"},
     "baidu": {"baidu.com"},
     "bytedance-seed": {"bytedance.com"},

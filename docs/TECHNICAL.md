@@ -131,11 +131,13 @@ This writes:
 - `data/model_metadata/model_launch_dates_review.csv`
 - `data/model_metadata/model_launch_dates_candidates.csv`
 - `data/model_metadata/model_launch_dates.csv` (canonical accepted rows)
+- `data/model_metadata/model_params.csv` (canonical tracked size/licensing metadata for models with public parameter disclosures)
 
 Publishing also exports:
 
 - `data/latest/model_launch_dates.csv`
 - `data/latest/leaderboard_with_launch.csv`
+- `data/latest/model_params.csv`
 
 ## Current Config Notes
 
@@ -173,6 +175,7 @@ Publishing also exports:
 - `leaderboard.csv`
 - `leaderboard_with_launch.csv`
 - `model_launch_dates.csv`
+- `model_params.csv`
 - `manifest.json`
 
 Collection run artifacts under `runs/<run_id>/` now also include flattened per-row usage metrics in `responses.jsonl` and `responses_review.csv`:

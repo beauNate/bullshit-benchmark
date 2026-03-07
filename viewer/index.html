@@ -1567,10 +1567,11 @@
             <tr>
               <th class="sortable-th" data-sort-key="rank">Rank <span class="sort-ind" data-sort-ind="rank"></span></th>
               <th class="sortable-th" data-sort-key="model">Model <span class="sort-ind" data-sort-ind="model"></span></th>
-              <th class="sortable-th" data-sort-key="org">Org <span class="sort-ind" data-sort-ind="org"></span></th>
-              <th class="sortable-th" data-sort-key="reasoning">Reasoning <span class="sort-ind" data-sort-ind="reasoning"></span></th>
-              <th class="sortable-th" data-sort-key="launchDate">Launch Date <span class="sort-ind" data-sort-ind="launchDate"></span></th>
-              <th class="sortable-th" data-sort-key="modelAgeDays">Model Age (days) <span class="sort-ind" data-sort-ind="modelAgeDays"></span></th>
+	              <th class="sortable-th" data-sort-key="org">Org <span class="sort-ind" data-sort-ind="org"></span></th>
+	              <th class="sortable-th" data-sort-key="reasoning">Reasoning <span class="sort-ind" data-sort-ind="reasoning"></span></th>
+	              <th class="sortable-th" data-sort-key="sizeTotalB">Model Size <span class="sort-ind" data-sort-ind="sizeTotalB"></span></th>
+	              <th class="sortable-th" data-sort-key="launchDate">Launch Date <span class="sort-ind" data-sort-ind="launchDate"></span></th>
+	              <th class="sortable-th" data-sort-key="modelAgeDays">Model Age (days) <span class="sort-ind" data-sort-ind="modelAgeDays"></span></th>
               <th class="sortable-th" data-sort-key="greenRate">Green % <span class="sort-ind" data-sort-ind="greenRate"></span></th>
               <th class="sortable-th" data-sort-key="amberRate">Amber % <span class="sort-ind" data-sort-ind="amberRate"></span></th>
               <th class="sortable-th" data-sort-key="redRate">Red % <span class="sort-ind" data-sort-ind="redRate"></span></th>
@@ -1707,11 +1708,13 @@
       responses: [],
       collectionStats: null,
       panelSummary: null,
-      aggregateSummary: null,
-      aggregateRows: [],
-      launchMetadataRows: [],
-      launchByModel: new Map(),
-      rows: [],
+	      aggregateSummary: null,
+	      aggregateRows: [],
+	      launchMetadataRows: [],
+	      launchByModel: new Map(),
+	      modelParamsRows: [],
+	      paramsByModel: new Map(),
+	      rows: [],
       filteredRows: [],
       bySampleId: new Map(),
       questionRows: [],
@@ -1910,15 +1913,16 @@
       const prefix = defaultPathPrefix();
       const dataset = datasetMeta(datasetKey);
       const base = normalizeDatasetBasePath(dataset.basePath);
-      return {
-        responses: `${prefix}${base}/responses.jsonl`,
-        collectionStats: `${prefix}${base}/collection_stats.json`,
-        panelSummary: `${prefix}${base}/panel_summary.json`,
-        aggregateSummary: `${prefix}${base}/aggregate_summary.json`,
-        aggregateRows: `${prefix}${base}/aggregate.jsonl`,
-        launchMetadata: `${prefix}${base}/model_launch_dates.csv`,
-      };
-    }
+	      return {
+	        responses: `${prefix}${base}/responses.jsonl`,
+	        collectionStats: `${prefix}${base}/collection_stats.json`,
+	        panelSummary: `${prefix}${base}/panel_summary.json`,
+	        aggregateSummary: `${prefix}${base}/aggregate_summary.json`,
+	        aggregateRows: `${prefix}${base}/aggregate.jsonl`,
+	        launchMetadata: `${prefix}${base}/model_launch_dates.csv`,
+	        modelParams: `${prefix}${base}/model_params.csv`,
+	      };
+	    }
 
     function setDataState(message) {
       if (el.dataState) {
@@ -2296,13 +2300,21 @@
       return date;
     }
 
-    function launchMetadataForRow(row) {
-      const modelBase = baseModelIdFromRow(row);
-      if (!modelBase) {
-        return null;
-      }
-      return state.launchByModel.get(modelBase) || null;
-    }
+	    function launchMetadataForRow(row) {
+	      const modelBase = baseModelIdFromRow(row);
+	      if (!modelBase) {
+	        return null;
+	      }
+	      return state.launchByModel.get(modelBase) || null;
+	    }
+
+	    function modelParamsForRow(row) {
+	      const modelBase = baseModelIdFromRow(row);
+	      if (!modelBase) {
+	        return null;
+	      }
+	      return state.paramsByModel.get(modelBase) || null;
+	    }
 
     function modelAgeDaysForRow(row) {
       const launch = launchMetadataForRow(row);
@@ -2887,9 +2899,68 @@
       return (value / total) * 100;
     }
 
-    function formatPct(value) {
-      return `${Number(value).toFixed(1)}%`;
-    }
+	    function formatPct(value) {
+	      return `${Number(value).toFixed(1)}%`;
+	    }
+
+	    function parseMetricNumber(value) {
+	      const num = Number(value);
+	      return Number.isFinite(num) ? num : null;
+	    }
+
+	    function formatParamBillions(value) {
+	      const num = Number(value);
+	      if (!Number.isFinite(num) || num <= 0) {
+	        return "";
+	      }
+	      if (num >= 1000) {
+	        const scaled = num / 1000;
+	        return `${Number.isInteger(scaled) ? scaled.toFixed(0) : scaled.toFixed(1)}T`;
+	      }
+	      return `${Number.isInteger(num) ? num.toFixed(0) : num.toFixed(1)}B`;
+	    }
+
+	    function modelSizeSummaryForRow(row) {
+	      const meta = modelParamsForRow(row);
+	      if (!meta) {
+	        return {
+	          display: "Unknown",
+	          title: "No public model-size metadata.",
+	          totalParamsB: null,
+	        };
+	      }
+	      const totalParamsB = parseMetricNumber(meta.total_params_b);
+	      const activeParamsB = parseMetricNumber(meta.active_params_b);
+	      const totalLabel = formatParamBillions(totalParamsB);
+	      const activeLabel = formatParamBillions(activeParamsB);
+	      let display = totalLabel || "Unknown";
+	      if (activeLabel && totalLabel && activeLabel !== totalLabel) {
+	        display = `${activeLabel} active · ${totalLabel} total`;
+	      } else if (activeLabel && !totalLabel) {
+	        display = `${activeLabel} active`;
+	      }
+	      const detailBits = [];
+	      if (meta.open_model_status) {
+	        detailBits.push(String(meta.open_model_status).replace(/_/g, " "));
+	      }
+	      if (meta.license) {
+	        detailBits.push(`license ${meta.license}`);
+	      }
+	      const titleBits = [];
+	      if (activeLabel && totalLabel && activeLabel !== totalLabel) {
+	        titleBits.push(`Active parameters: ${activeLabel}`, `Total parameters: ${totalLabel}`);
+	      } else if (totalLabel) {
+	        titleBits.push(`Model size: ${totalLabel}`);
+	      }
+	      if (detailBits.length) {
+	        titleBits.push(detailBits.join(" · "));
+	      }
+	      return {
+	        display,
+	        title: titleBits.join(" | ") || "No public model-size metadata.",
+	        totalParamsB,
+	      };
+	    }
 
     function aggregateCounts(rows) {
       const counts = { green: 0, amber: 0, red: 0, error: 0 };
@@ -3946,26 +4017,30 @@
       });
     }
 
-    function renderLeaderboard(filteredRows) {
-      const byModel = groupBy(filteredRows, (row) => modelKey(row));
-      const rows = [...byModel.entries()].map(([key, modelRows]) => {
-        const sample = modelRows[0] || {};
-        const stats = summarizeRows(modelRows);
-        const launch = launchMetadataForRow(sample);
-        const launchDate = launch ? String(launch.launch_date || "").trim() : "";
-        const launchEvidenceUrl = launch ? String(launch.evidence_url || "").trim() : "";
-        const modelAgeDays = modelAgeDaysForRow(sample);
-        return {
-          key,
-          rank: 0,
-          model: displayModel(sample),
-          org: modelOrg(sample),
-          reasoning: normalizeReasoningLevel(sample.model_reasoning_level),
-          launchDate,
-          launchEvidenceUrl,
-          modelAgeDays,
-          ...stats,
-        };
+	    function renderLeaderboard(filteredRows) {
+	      const byModel = groupBy(filteredRows, (row) => modelKey(row));
+	      const rows = [...byModel.entries()].map(([key, modelRows]) => {
+	        const sample = modelRows[0] || {};
+	        const stats = summarizeRows(modelRows);
+	        const launch = launchMetadataForRow(sample);
+	        const size = modelSizeSummaryForRow(sample);
+	        const launchDate = launch ? String(launch.launch_date || "").trim() : "";
+	        const launchEvidenceUrl = launch ? String(launch.evidence_url || "").trim() : "";
+	        const modelAgeDays = modelAgeDaysForRow(sample);
+	        return {
+	          key,
+	          rank: 0,
+	          model: displayModel(sample),
+	          org: modelOrg(sample),
+	          reasoning: normalizeReasoningLevel(sample.model_reasoning_level),
+	          sizeDisplay: size.display,
+	          sizeTitle: size.title,
+	          sizeTotalB: size.totalParamsB ?? 0,
+	          launchDate,
+	          launchEvidenceUrl,
+	          modelAgeDays,
+	          ...stats,
+	        };
       });
 
       const baseline = [...rows].sort(defaultLeaderboardCompare);
@@ -3974,15 +4049,16 @@
       });
 
       const { key, direction } = state.leaderboardSort;
-      const numericKeys = new Set([
-        "rank",
-        "greenRate",
-        "amberRate",
-        "redRate",
-        "errorRate",
-        "rows",
-        "modelAgeDays",
-      ]);
+	      const numericKeys = new Set([
+	        "rank",
+	        "greenRate",
+	        "amberRate",
+	        "redRate",
+	        "errorRate",
+	        "rows",
+	        "modelAgeDays",
+	        "sizeTotalB",
+	      ]);
       const dir = direction === "asc" ? 1 : -1;
       baseline.sort((a, b) => {
         let cmp = 0;
@@ -4036,15 +4112,16 @@
                   <span>${escapeHtml(row.model)}</span>
                 </div>
               </td>
-              <td>
-                <span class="org-chip">
-                  <span class="org-dot" style="background:${escapeHtml(orgSwatch)};"></span>
-                  ${escapeHtml(displayOrg(row.org))}
-                </span>
-              </td>
-              <td>${escapeHtml(reasoningLabel)}</td>
-              <td>${launchDateCell}</td>
-              <td>${escapeHtml(modelAgeText)}</td>
+	              <td>
+	                <span class="org-chip">
+	                  <span class="org-dot" style="background:${escapeHtml(orgSwatch)};"></span>
+	                  ${escapeHtml(displayOrg(row.org))}
+	                </span>
+	              </td>
+	              <td>${escapeHtml(reasoningLabel)}</td>
+	              <td title="${escapeHtml(row.sizeTitle)}">${escapeHtml(row.sizeDisplay)}</td>
+	              <td>${launchDateCell}</td>
+	              <td>${escapeHtml(modelAgeText)}</td>
               <td>${formatPct(row.greenRate)}</td>
               <td>${formatPct(row.amberRate)}</td>
               <td>${formatPct(row.redRate)}</td>
@@ -4531,25 +4608,37 @@
       renderCompareSection(filteredRows);
     }
 
-    function ingestData(payload) {
-      state.responses = payload.responses;
-      state.collectionStats = payload.collectionStats;
-      state.panelSummary = payload.panelSummary;
-      state.aggregateSummary = payload.aggregateSummary;
-      state.aggregateRows = payload.aggregateRows;
-      state.launchMetadataRows = payload.launchMetadataRows || [];
-      state.launchByModel = new Map(
-        state.launchMetadataRows
-          .map((row) => {
+	    function ingestData(payload) {
+	      state.responses = payload.responses;
+	      state.collectionStats = payload.collectionStats;
+	      state.panelSummary = payload.panelSummary;
+	      state.aggregateSummary = payload.aggregateSummary;
+	      state.aggregateRows = payload.aggregateRows;
+	      state.launchMetadataRows = payload.launchMetadataRows || [];
+	      state.modelParamsRows = payload.modelParamsRows || [];
+	      state.launchByModel = new Map(
+	        state.launchMetadataRows
+	          .map((row) => {
             const modelId = String((row && row.model_id) || "").trim();
             if (!modelId) {
               return null;
             }
             return [modelId, row];
-          })
-          .filter(Boolean),
-      );
-      state.rows = normalizeRows(payload.aggregateRows, payload.responses);
+	          })
+	          .filter(Boolean),
+	      );
+	      state.paramsByModel = new Map(
+	        state.modelParamsRows
+	          .map((row) => {
+	            const modelId = String((row && row.model_id) || "").trim();
+	            if (!modelId) {
+	              return null;
+	            }
+	            return [modelId, row];
+	          })
+	          .filter(Boolean),
+	      );
+	      state.rows = normalizeRows(payload.aggregateRows, payload.responses);
       state.bySampleId = new Map(state.rows.map((row) => [row.sample_id, row]));
       state.lastCompareQuestionId = "";
       refreshJudgeFilterLabels();
@@ -4584,26 +4673,35 @@
           setDataState("Loaded core files. Aggregate rows are missing, so comparison detail is limited.");
         }
 
-        let launchMetadataText = "";
-        try {
-          launchMetadataText = await fetchText(paths.launchMetadata);
-        } catch (_error) {
-          launchMetadataText = "";
-        }
+	        let launchMetadataText = "";
+	        try {
+	          launchMetadataText = await fetchText(paths.launchMetadata);
+	        } catch (_error) {
+	          launchMetadataText = "";
+	        }
 
-        const payload = {
-          responses: parseJsonl(required[0], "responses.jsonl"),
-          collectionStats: JSON.parse(required[1]),
-          panelSummary: JSON.parse(required[2]),
-          aggregateSummary: JSON.parse(required[3]),
-          aggregateRows: aggregateRowsText ? parseJsonl(aggregateRowsText, "aggregate.jsonl") : [],
-          launchMetadataRows: launchMetadataText ? parseCsv(launchMetadataText, "model_launch_dates.csv") : [],
-        };
-        ingestData(payload);
-        setDataState(
-          `${dataset.label} loaded: ${payload.responses.length} responses. `
-          + `Launch metadata rows: ${payload.launchMetadataRows.length}.`,
-        );
+	        let modelParamsText = "";
+	        try {
+	          modelParamsText = await fetchText(paths.modelParams);
+	        } catch (_error) {
+	          modelParamsText = "";
+	        }
+
+	        const payload = {
+	          responses: parseJsonl(required[0], "responses.jsonl"),
+	          collectionStats: JSON.parse(required[1]),
+	          panelSummary: JSON.parse(required[2]),
+	          aggregateSummary: JSON.parse(required[3]),
+	          aggregateRows: aggregateRowsText ? parseJsonl(aggregateRowsText, "aggregate.jsonl") : [],
+	          launchMetadataRows: launchMetadataText ? parseCsv(launchMetadataText, "model_launch_dates.csv") : [],
+	          modelParamsRows: modelParamsText ? parseCsv(modelParamsText, "model_params.csv") : [],
+	        };
+	        ingestData(payload);
+	        setDataState(
+	          `${dataset.label} loaded: ${payload.responses.length} responses. `
+	          + `Launch metadata rows: ${payload.launchMetadataRows.length}. `
+	          + `Model params rows: ${payload.modelParamsRows.length}.`,
+	        );
       } catch (error) {
         setDataState(`Could not load ${dataset.label}: ${error.message}`);
       }

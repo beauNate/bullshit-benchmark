@@ -705,7 +705,7 @@
 
     /* Table */
     .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
-    table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    table { width: 100%; border-collapse: collapse; min-width: 1020px; }
     th, td { border-bottom: 1px solid #e2e8e4; padding: 8px 9px; text-align: left; vertical-align: top; font-size: 0.82rem; }
     th {
       position: sticky; top: 0; z-index: 2; background: #f1f6f4;
@@ -716,6 +716,17 @@
     .sort-ind { display: inline-block; min-width: 10px; margin-left: 4px; color: #5e736b; font-size: 0.7rem; }
     tr:hover td { background: #f7faf9; }
     .model-name { font-weight: 600; color: #1d2d28; }
+    .size-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+      color: #2f433d;
+      font-size: 0.76rem;
+      line-height: 1.35;
+    }
+    .size-meta .size-main { font-weight: 700; color: #1f322d; }
+    .size-meta .size-subtle { color: #647871; }
     .mini-mix {
       height: 12px; border-radius: 999px; border: 1px solid #d7e0db;
       background: #f1f4f3; overflow: hidden; display: flex; width: 180px;
@@ -1060,6 +1071,20 @@
       </section>
     </div>
 
+    <section class="panel">
+      <div class="reasoning-panel-head">
+        <h2 id="sizeScatterTitle" data-bench-heading="Do Bigger Models Perform Better?">BullshitBench v2: Do Bigger Models Perform Better?</h2>
+        <div class="reasoning-mode-switch" role="group" aria-label="Model size chart mode">
+          <button type="button" class="reasoning-mode-btn is-active" data-size-mode="total">Total Params</button>
+          <button type="button" class="reasoning-mode-btn" data-size-mode="active">Active Params</button>
+        </div>
+      </div>
+      <p class="subtle" id="sizeScatterSubtitle">Verified public parameter counts vs. green rate. Switch between total and active parameters when available.</p>
+      <div class="chart-legend" id="sizeScatterLegend"></div>
+      <svg id="sizeScatter" class="scatter-svg" viewBox="0 0 1200 420"></svg>
+      <p class="small-note" id="sizeScatterMeta"></p>
+    </section>
+
     <!-- Leaderboard -->
     <section class="panel">
       <h2 data-bench-heading="Leaderboard">BullshitBench v2: Leaderboard</h2>
@@ -1072,6 +1097,7 @@
               <th class="sortable" data-key="model">Model <span class="sort-ind" data-ind="model"></span></th>
               <th class="sortable" data-key="org">Org <span class="sort-ind" data-ind="org"></span></th>
               <th class="sortable" data-key="reasoning">Reasoning <span class="sort-ind" data-ind="reasoning"></span></th>
+              <th class="sortable" data-key="sizeTotalB">Model Size <span class="sort-ind" data-ind="sizeTotalB"></span></th>
               <th class="sortable" data-key="greenRate">Green % <span class="sort-ind" data-ind="greenRate"></span></th>
               <th class="sortable" data-key="amberRate">Amber % <span class="sort-ind" data-ind="amberRate"></span></th>
               <th class="sortable" data-key="redRate">Red % <span class="sort-ind" data-ind="redRate"></span></th>
@@ -1135,6 +1161,7 @@ const BENCHMARK_CONFIGS = {
     titlePrefix: "BullshitBench v2",
     questionsPaths: ["../questions.v2.json"],
     launchFallbackPath: "../data/v2/latest/model_launch_dates.csv",
+    paramsFallbackPath: "../data/v2/latest/model_params.csv",
     embeddedDatasetKey: "BSB_V2_EMBED",
     embeddedLaunchKey: "BSB_V2_LAUNCH",
     showDomainGroup: true,
@@ -1160,6 +1187,7 @@ const BENCHMARK_CONFIGS = {
     titlePrefix: "BullshitBench v1",
     questionsPaths: ["../questions.json"],
     launchFallbackPath: "../data/latest/model_launch_dates.csv",
+    paramsFallbackPath: "../data/latest/model_params.csv",
     embeddedDatasetKey: "",
     embeddedLaunchKey: "",
     showDomainGroup: false,
@@ -1257,10 +1285,11 @@ const S = {
   benchmarkVersion: benchmarkVersionFromUrl(),
   benchmarkMeta: null,
   rows: [], filteredRows: [], responses: [], aggregateRows: [],
-  questionMap: new Map(), usageByModel: new Map(),
+  questionMap: new Map(), usageByModel: new Map(), paramsByModel: new Map(),
   hiddenModels: new Set(), selectedMainChartModels: new Set(), selectedJudges: new Set([1,2,3]),
   modelChartFocusOrg: "all",
   reasoningScatterMode: "tokens",
+  sizeScatterMode: "total",
   topVariantsOnly: false,
   drilldown: null, lbSort: { key: "greenRate", direction: "desc" },
   tokenSort: "total",
@@ -1288,6 +1317,35 @@ function niceTickStep(maxValue, targetTickCount = 7) {
 }
 function fmtAxisNumber(v) {
   return Number.isInteger(v) ? fmtNum(v) : Number(v).toFixed(1);
+}
+function parseMetricNumber(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+function fmtParamBillions(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  if (n >= 1000) {
+    const scaled = n / 1000;
+    return `${Number.isInteger(scaled) ? scaled.toFixed(0) : scaled.toFixed(1)}T`;
+  }
+  return `${Number.isInteger(n) ? n.toFixed(0) : n.toFixed(1)}B`;
+}
+function buildLogTicks(minValue, maxValue) {
+  if (!Number.isFinite(minValue) || !Number.isFinite(maxValue) || minValue <= 0 || maxValue <= 0) return [];
+  const bases = [1, 2, 5];
+  const ticks = [];
+  const minPow = Math.floor(Math.log10(minValue));
+  const maxPow = Math.ceil(Math.log10(maxValue));
+  for (let pow = minPow; pow <= maxPow; pow++) {
+    const scale = 10 ** pow;
+    bases.forEach(base => {
+      const tick = base * scale;
+      if (tick >= minValue * 0.999 && tick <= maxValue * 1.001) ticks.push(tick);
+    });
+  }
+  if (!ticks.length) return [minValue, maxValue].filter((v, idx, arr) => arr.indexOf(v) === idx);
+  return ticks;
 }
 
 function normOrg(v) {
@@ -1618,6 +1676,7 @@ async function loadDatasetCandidate(source) {
   const panel = source.supportsPanelSummary === false ? null : await fetchJsonOptional(`${source.basePath}/panel_summary.json`);
   const summary = source.supportsAggregate === false ? null : await fetchJsonOptional(`${source.basePath}/aggregate_summary.json`);
   const launchText = source.supportsLaunchMetadata === false ? "" : await fetchTextOptional(`${source.basePath}/model_launch_dates.csv`);
+  const paramsText = source.supportsModelParams === false ? "" : await fetchTextOptional(`${source.basePath}/model_params.csv`);
   const gradeText = source.gradePath ? await fetchTextOptional(source.gradePath) : "";
 
   const responses = parseJsonl(respText);
@@ -1633,7 +1692,7 @@ async function loadDatasetCandidate(source) {
     mode = "responses_only";
   }
 
-  return { source, responses, stats, panel, summary, launchText, aggregateRows, mode };
+  return { source, responses, stats, panel, summary, launchText, paramsText, aggregateRows, mode };
 }
 
 // ====== DATA LOADING ======
@@ -1756,6 +1815,19 @@ async function loadData() {
       launchRows.forEach(lr => {
         const mid = String(lr.model_id || "").trim();
         if (mid) S.launchByModel.set(mid, lr);
+      });
+    }
+
+    S.paramsByModel = new Map();
+    let paramsText = loaded.paramsText || "";
+    if (!paramsText) {
+      paramsText = await fetchTextOptional(cfg.paramsFallbackPath);
+    }
+    if (paramsText) {
+      const paramsRows = parseCsv(paramsText);
+      paramsRows.forEach(pr => {
+        const mid = String(pr.model_id || "").trim();
+        if (mid) S.paramsByModel.set(mid, pr);
       });
     }
 
@@ -3031,11 +3103,181 @@ function renderReasoningScatter(filtered) {
   });
 }
 
+function renderSizeScatter(filtered) {
+  const svg = document.getElementById("sizeScatter");
+  const metaEl = document.getElementById("sizeScatterMeta");
+  if (!svg) return;
+
+  const mode = S.sizeScatterMode === "active" ? "active" : "total";
+  const modeCfg = mode === "active"
+    ? {
+        metricKey: "activeParamsB",
+        headingSuffix: "Do Active Parameters Predict Detection?",
+        subtitle: "Activated parameter counts from public sources vs. green rate. Dense models appear when active parameters are disclosed or intentionally equal total.",
+        xAxisLabel: "Active Parameters (billions, log scale)",
+        tooltipLabel: "Active parameters",
+        emptyText: "No active-parameter metadata is available for the current filters.",
+      }
+    : {
+        metricKey: "totalParamsB",
+        headingSuffix: "Do Bigger Models Perform Better?",
+        subtitle: "Public total parameter counts vs. green rate. The x-axis uses a log scale so 8B through 1T remain readable.",
+        xAxisLabel: "Total Parameters (billions, log scale)",
+        tooltipLabel: "Total parameters",
+        emptyText: "No total-parameter metadata is available for the current filters.",
+      };
+  const metricKey = modeCfg.metricKey;
+  const titleEl = document.getElementById("sizeScatterTitle");
+  const subtitleEl = document.getElementById("sizeScatterSubtitle");
+  const cfg = currentBenchmarkConfig();
+  if (titleEl) titleEl.textContent = `${cfg.titlePrefix}: ${modeCfg.headingSuffix}`;
+  if (subtitleEl) subtitleEl.textContent = modeCfg.subtitle;
+  document.querySelectorAll("[data-size-mode]").forEach(btn => {
+    btn.classList.toggle("is-active", btn.getAttribute("data-size-mode") === mode);
+  });
+
+  const byModel2 = groupBy(filtered, modelKey);
+  const allPoints = [...byModel2.entries()].map(([mk, mRows]) => {
+    const sample = mRows[0] || {};
+    const s = summarize(mRows);
+    const paramsMeta = paramsMetaForRow(sample);
+    const sizeMeta = formatModelSizeSummary(paramsMeta);
+    return {
+      mk,
+      label: prettyModel(sample),
+      org: modelOrg(sample),
+      greenRate: s.greenRate,
+      totalParamsB: sizeMeta.totalParamsB,
+      activeParamsB: sizeMeta.activeParamsB,
+      sizeDisplay: sizeMeta.display,
+      sizeTitle: sizeMeta.title,
+      openStatus: String(paramsMeta?.open_model_status || "").trim(),
+      modelLicense: String(paramsMeta?.license || "").trim(),
+    };
+  });
+  const points = allPoints.filter(p => Number(p[metricKey]) > 0);
+
+  if (!points.length) {
+    svg.innerHTML = `<text x="600" y="210" text-anchor="middle" fill="#5d726b" font-size="14">${esc(modeCfg.emptyText)}</text>`;
+    renderCompactScatterLegend("sizeScatterLegend", []);
+    if (metaEl) {
+      metaEl.textContent = `Showing 0 of ${allPoints.length} visible model variants with public ${mode === "active" ? "active" : "total"}-parameter metadata.`;
+    }
+    return;
+  }
+
+  renderCompactScatterLegend("sizeScatterLegend", points, { maxOrgs: 6, expandable: true });
+
+  const values = points.map(p => Number(p[metricKey]) || 0).filter(v => v > 0);
+  const minMetric = Math.min(...values);
+  const maxMetric = Math.max(...values);
+  const minX = Math.max(minMetric * 0.85, 0.5);
+  const maxX = Math.max(maxMetric * 1.15, minX * 1.2);
+  const logMin = Math.log10(minX);
+  const logMax = Math.log10(maxX);
+  const W = 1200, H = 420, ml = 78, mr = 30, mt = 20, mb = 56;
+  const pw = W - ml - mr, ph = H - mt - mb;
+  const xFor = v => ml + ((Math.log10(Number(v) || minX) - logMin) / Math.max(1e-9, logMax - logMin)) * pw;
+  const yFor = v => mt + ((100 - v) / 100) * ph;
+  const xTicks = buildLogTicks(minX, maxX);
+  const yTicks = [0, 20, 40, 60, 80, 100];
+  const gridLines = yTicks.map(t => `<line x1="${ml}" y1="${yFor(t).toFixed(1)}" x2="${W-mr}" y2="${yFor(t).toFixed(1)}" stroke="#d8e2dd" stroke-width="1"/><text x="${ml-8}" y="${(yFor(t)+4).toFixed(1)}" text-anchor="end" fill="#586d66" font-size="11">${t}%</text>`).join("");
+  const xGridLines = xTicks.map(t => `<line x1="${xFor(t).toFixed(1)}" y1="${mt}" x2="${xFor(t).toFixed(1)}" y2="${H-mb}" stroke="#edf2ef" stroke-width="1"/><text x="${xFor(t).toFixed(1)}" y="${H-mb+18}" text-anchor="middle" fill="#586d66" font-size="10">${esc(fmtParamBillions(t))}</text>`).join("");
+
+  let trendHtml = "";
+  if (points.length >= 3) {
+    const xs = points.map(p => Math.log10(Number(p[metricKey]) || minX));
+    const ys = points.map(p => p.greenRate);
+    const mx = xs.reduce((s,v) => s+v, 0) / xs.length;
+    const my = ys.reduce((s,v) => s+v, 0) / ys.length;
+    let cov = 0;
+    let vx = 0;
+    for (let i = 0; i < xs.length; i++) {
+      const dx = xs[i] - mx;
+      cov += dx * (ys[i] - my);
+      vx += dx * dx;
+    }
+    if (vx > 0) {
+      const slope = cov / vx;
+      const intercept = my - slope * mx;
+      const x1 = Math.min(...xs);
+      const x2 = Math.max(...xs);
+      const y1 = Math.max(0, Math.min(100, slope * x1 + intercept));
+      const y2 = Math.max(0, Math.min(100, slope * x2 + intercept));
+      trendHtml = `<line x1="${xFor(10 ** x1).toFixed(1)}" y1="${yFor(y1).toFixed(1)}" x2="${xFor(10 ** x2).toFixed(1)}" y2="${yFor(y2).toFixed(1)}" stroke="#5f6f6a" stroke-opacity="0.4" stroke-width="1.4" stroke-dasharray="5 4"/>`;
+    }
+  }
+
+  points.forEach(p => { p._cx = xFor(p[metricKey]); p._cy = yFor(p.greenRate); });
+  const circles = points.map(p => `<circle cx="${p._cx.toFixed(1)}" cy="${p._cy.toFixed(1)}" r="4.5" fill="${orgColor(p.org)}" fill-opacity="0.85" stroke="#17211e" stroke-opacity="0.3" stroke-width="0.8"/>`).join("");
+  const labelCandidates = selectReasoningScatterLabelPoints(points, 10, metricKey);
+  const labelPlacements = placeLabelsGreedy(labelCandidates, {
+    fontSize: 8.6, svgW: W, svgH: H, ml, mr, mt, mb,
+    obstaclePoints: points, maxLabels: labelCandidates.length, dotRadius: 4, padding: 1.6,
+  });
+  const labelHalo = labelPlacements.map(lp =>
+    `<circle cx="${lp.point._cx.toFixed(1)}" cy="${lp.point._cy.toFixed(1)}" r="5.6" fill="none" stroke="${orgColor(lp.point.org)}" stroke-opacity="0.45" stroke-width="1"/>`
+  ).join("");
+  const labelsHtml = labelPlacements.map(lp => {
+    const label = launchChartModelLabel(lp.point.label);
+    return `<text x="${lp.x.toFixed(1)}" y="${lp.y.toFixed(1)}" text-anchor="${lp.anchor||"start"}" fill="#2b3b36" font-size="8.6" font-weight="620" opacity="0.95" stroke="#fffefb" stroke-width="2.1" paint-order="stroke">${esc(label)}</text>`;
+  }).join("");
+
+  svg.innerHTML = `${gridLines}${xGridLines}${trendHtml}${circles}${labelHalo}${labelsHtml}
+    <text x="${ml+pw/2}" y="${H-8}" text-anchor="middle" fill="#425851" font-size="12">${esc(modeCfg.xAxisLabel)}</text>
+    <text x="14" y="${mt+ph/2}" transform="rotate(-90,14,${mt+ph/2})" text-anchor="middle" fill="#425851" font-size="12">Green Rate (%)</text>`;
+
+  if (metaEl) {
+    metaEl.textContent = `Showing ${points.length} of ${allPoints.length} visible model variants with public ${mode === "active" ? "active" : "total"}-parameter metadata.`;
+  }
+  setupScatterTooltips(svg, points, metricKey, "greenRate", p => {
+    const bits = [
+      `<strong>${esc(p.label)}</strong>`,
+      `Green: ${p.greenRate.toFixed(1)}%`,
+      `${esc(modeCfg.tooltipLabel)}: ${esc(fmtParamBillions(p[metricKey]))}`,
+    ];
+    if (p.sizeDisplay && p.sizeDisplay !== fmtParamBillions(p[metricKey])) bits.push(`Size summary: ${esc(p.sizeDisplay)}`);
+    if (p.openStatus) bits.push(`Access: ${esc(String(p.openStatus).replace(/_/g, " "))}`);
+    if (p.modelLicense) bits.push(`License: ${esc(p.modelLicense)}`);
+    return bits.join("<br>");
+  });
+}
+
 // ====== LAUNCH DATE HELPERS ======
 function baseModelId(row) {
   const mid = String((row && row.model_id) || "").trim();
   if (mid) return mid.replace(/@reasoning=[^@]+$/i, "");
   return String(modelKey(row) || "").replace(/@reasoning=[^@]+$/i, "");
+}
+function paramsMetaForRow(row) {
+  const base = baseModelId(row);
+  if (!base || !S.paramsByModel) return null;
+  return S.paramsByModel.get(base) || null;
+}
+function formatModelSizeSummary(meta) {
+  if (!meta) return { display: "", title: "No public model-size metadata.", totalParamsB: null, activeParamsB: null };
+  const totalParamsB = parseMetricNumber(meta.total_params_b);
+  const activeParamsB = parseMetricNumber(meta.active_params_b);
+  const totalLabel = fmtParamBillions(totalParamsB);
+  const activeLabel = fmtParamBillions(activeParamsB);
+  let display = totalLabel || "Unknown";
+  if (activeLabel && totalLabel && activeLabel !== totalLabel) display = `${activeLabel} active · ${totalLabel} total`;
+  else if (activeLabel && !totalLabel) display = `${activeLabel} active`;
+  const detailBits = [];
+  if (meta.open_model_status) detailBits.push(String(meta.open_model_status).replace(/_/g, " "));
+  if (meta.license) detailBits.push(`license ${meta.license}`);
+  const titleBits = [];
+  if (activeLabel && totalLabel && activeLabel !== totalLabel) titleBits.push(`Active parameters: ${activeLabel}`, `Total parameters: ${totalLabel}`);
+  else if (totalLabel) titleBits.push(`Model size: ${totalLabel}`);
+  else if (activeLabel) titleBits.push(`Active parameters: ${activeLabel}`);
+  if (detailBits.length) titleBits.push(detailBits.join(" · "));
+  return {
+    display,
+    title: titleBits.join(" | ") || "No public model-size metadata.",
+    totalParamsB,
+    activeParamsB,
+    detail: detailBits.join(" · "),
+  };
 }
 function parseIsoDate(v) {
   const t = String(v||"").trim();
@@ -3078,7 +3320,21 @@ function renderLeaderboard(filtered) {
     const u=S.usageByModel.get(mk);
     const avgTokens=u&&u.count?u.total/u.count:0;
     const avgCost=u&&u.count?u.cost/u.count:0;
-    return { mk, rank:0, model:prettyModel(sample), org:modelOrg(sample), reasoning:normReasoning(sample.model_reasoning_level), ...s, avgTokens, avgCost };
+    const sizeMeta = formatModelSizeSummary(paramsMetaForRow(sample));
+    return {
+      mk,
+      rank:0,
+      model:prettyModel(sample),
+      org:modelOrg(sample),
+      reasoning:normReasoning(sample.model_reasoning_level),
+      sizeDisplay:sizeMeta.display || "Unknown",
+      sizeTitle:sizeMeta.title,
+      sizeDetail:sizeMeta.detail,
+      sizeTotalB:sizeMeta.totalParamsB ?? 0,
+      ...s,
+      avgTokens,
+      avgCost,
+    };
   });
   // Baseline ranking
   const baseline=[...rows].sort((a,b)=>
@@ -3091,7 +3347,7 @@ function renderLeaderboard(filtered) {
   // Apply user sort
   const {key,direction}=S.lbSort;
   const dir=direction==="asc"?1:-1;
-  const numKeys=new Set(["rank","greenRate","amberRate","redRate","errorRate","rows","avgTokens","avgCost"]);
+  const numKeys=new Set(["rank","greenRate","amberRate","redRate","errorRate","rows","avgTokens","avgCost","sizeTotalB"]);
   baseline.sort((a,b)=>{
     let cmp=0;
     if(numKeys.has(key)) cmp=Number(a[key]||0)-Number(b[key]||0);
@@ -3114,6 +3370,7 @@ function renderLeaderboard(filtered) {
       <td><span class="model-name" style="display:inline-flex;align-items:center;gap:6px;"><span class="org-dot" style="background:${orgColor(r.org)};"></span>${esc(r.model)}</span></td>
       <td><span class="org-chip"><span class="org-dot" style="background:${orgColor(r.org)};"></span>${esc(orgName(r.org))}</span></td>
       <td>${esc(rl)}</td>
+      <td title="${esc(r.sizeTitle)}"><span class="size-meta"><span class="size-main">${esc(r.sizeDisplay)}</span>${r.sizeDetail?`<span class="size-subtle">${esc(r.sizeDetail)}</span>`:""}</span></td>
       <td>${fmtPct(r.greenRate)}</td>
       <td>${fmtPct(r.amberRate)}</td>
       <td>${fmtPct(r.redRate)}</td>
@@ -3250,6 +3507,7 @@ function renderAll() {
   renderLaunchAllOrgs(filtered);
   renderAllModelsScatter(filtered);
   renderReasoningScatter(filtered);
+  renderSizeScatter(filtered);
   renderLeaderboard(filtered);
   renderCompare(filtered);
 }
@@ -3351,6 +3609,14 @@ function bindEvents() {
     const next = btn.getAttribute("data-reasoning-mode") === "cost" ? "cost" : "tokens";
     if (S.reasoningScatterMode === next) return;
     S.reasoningScatterMode = next;
+    renderAll();
+  });
+  document.addEventListener("click", e => {
+    const btn = e.target.closest("[data-size-mode]");
+    if (!btn) return;
+    const next = btn.getAttribute("data-size-mode") === "active" ? "active" : "total";
+    if (S.sizeScatterMode === next) return;
+    S.sizeScatterMode = next;
     renderAll();
   });
 
