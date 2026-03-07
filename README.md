@@ -6,15 +6,16 @@
 BullshitBench measures whether models detect nonsense, call it out clearly, and avoid confidently continuing with invalid assumptions.
 
 - Public viewer (latest): https://petergpt.github.io/bullshit-benchmark/viewer/index.v2.html
-- Updated: 2026-03-04
+- Updated: 2026-03-07
 
-## Latest Changelog Entry (2026-03-04)
+## Latest Changelog Entry (2026-03-07)
 
 - Added benchmark runs for:
-  - `openai/gpt-5.3-chat`
-  - `google/gemini-3.1-flash-lite-preview`
-- Set launch date metadata for both models to `2026-03-04` (today) and propagated it across v1/v2 launch metadata and leaderboard launch views.
-- Updated `viewer/index.v2.html` launch-metadata loading to merge embedded + CSV launch rows and fetch with `cache: "no-store"` so the newest launch dates always render in charts.
+  - `meta-llama/llama-4-maverick`
+  - `meta-llama/llama-4-scout`
+  - `meta-llama/llama-3.1-8b-instruct`
+- Added canonical launch-date metadata for the Meta rows and propagated it across the published v1/v2 launch views so the release-date charts include them.
+- Refreshed the published viewer datasets and README chart screenshots so GitHub and the live viewer reflect the same latest data.
 - Full details: [CHANGELOG.md](CHANGELOG.md)
 
 ## v2 Changelog Highlights
@@ -68,7 +69,7 @@ Reasoning scatter (tokens/cost toggle in the viewer) vs. green rate.
 - `5` domain groups: `software` (40), `finance` (15), `legal` (15), `medical` (15), `physics` (15).
 - `13` nonsense techniques (for example: `plausible_nonexistent_framework`, `misapplied_mechanism`, `nested_nonsense`, `specificity_trap`).
 - `3`-judge panel aggregation (`anthropic/claude-sonnet-4.6`, `openai/gpt-5.2`, `google/gemini-3.1-pro-preview`) using `full` panel mode + `mean` aggregation.
-- Published v2 leaderboard currently includes `72` model/reasoning rows.
+- Published v2 leaderboard currently includes `80` model/reasoning rows.
 
 ## What This Measures
 

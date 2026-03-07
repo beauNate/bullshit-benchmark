@@ -1368,6 +1368,41 @@
       "run_average_stddev": null
     },
     {
+      "model": "meta-llama/llama-4-maverick@reasoning=default",
+      "count": 100,
+      "scored_count": 100,
+      "nonsense_count": 100,
+      "control_count": 0,
+      "score_0": 42,
+      "score_1": 30,
+      "score_2": 28,
+      "score_3": 0,
+      "avg_score": 0.8333,
+      "detection_rate_score_2": 0.28,
+      "full_engagement_rate_score_0": 0.42,
+      "control_correct_rate_score_3": null,
+      "error_count": 0,
+      "technique_breakdown": {
+        "authoritative_framing": 1.2593,
+        "confident_extrapolation": 0.5,
+        "cross_domain_stitching": 0.7333,
+        "fabricated_authority": 0.9091,
+        "false_granularity": 1.1667,
+        "misapplied_mechanism": 1.4359,
+        "nested_nonsense": 0.6667,
+        "plausible_nonexistent_framework": 0.4375,
+        "reified_metaphor": 1.3333,
+        "specificity_trap": 0.0833,
+        "sunk_cost_framing": 0.5238,
+        "temporal_category_error": 1.2778,
+        "wrong_unit_of_analysis": 0.6
+      },
+      "run_average_scores": {
+        "1": 0.8333
+      },
+      "run_average_stddev": null
+    },
+    {
       "model": "openai/gpt-5.2-chat@reasoning=default",
       "count": 100,
       "scored_count": 100,
@@ -1749,6 +1784,76 @@
       },
       "run_average_scores": {
         "1": 0.5767
+      },
+      "run_average_stddev": null
+    },
+    {
+      "model": "meta-llama/llama-4-scout@reasoning=default",
+      "count": 100,
+      "scored_count": 100,
+      "nonsense_count": 100,
+      "control_count": 0,
+      "score_0": 61,
+      "score_1": 20,
+      "score_2": 19,
+      "score_3": 0,
+      "avg_score": 0.5633,
+      "detection_rate_score_2": 0.19,
+      "full_engagement_rate_score_0": 0.61,
+      "control_correct_rate_score_3": null,
+      "error_count": 0,
+      "technique_breakdown": {
+        "authoritative_framing": 0.8148,
+        "confident_extrapolation": 0.1667,
+        "cross_domain_stitching": 0.6667,
+        "fabricated_authority": 0.4545,
+        "false_granularity": 0.7778,
+        "misapplied_mechanism": 1.1026,
+        "nested_nonsense": 0.6667,
+        "plausible_nonexistent_framework": 0.2083,
+        "reified_metaphor": 1.4445,
+        "specificity_trap": 0.1667,
+        "sunk_cost_framing": 0.1905,
+        "temporal_category_error": 0.7222,
+        "wrong_unit_of_analysis": 0.3333
+      },
+      "run_average_scores": {
+        "1": 0.5633
+      },
+      "run_average_stddev": null
+    },
+    {
+      "model": "meta-llama/llama-3.1-8b-instruct@reasoning=default",
+      "count": 100,
+      "scored_count": 100,
+      "nonsense_count": 100,
+      "control_count": 0,
+      "score_0": 61,
+      "score_1": 25,
+      "score_2": 14,
+      "score_3": 0,
+      "avg_score": 0.5633,
+      "detection_rate_score_2": 0.14,
+      "full_engagement_rate_score_0": 0.61,
+      "control_correct_rate_score_3": null,
+      "error_count": 0,
+      "technique_breakdown": {
+        "authoritative_framing": 0.4815,
+        "confident_extrapolation": 0.0,
+        "cross_domain_stitching": 0.4666,
+        "fabricated_authority": 0.5758,
+        "false_granularity": 0.8333,
+        "misapplied_mechanism": 1.0,
+        "nested_nonsense": 0.5238,
+        "plausible_nonexistent_framework": 0.3542,
+        "reified_metaphor": 1.3333,
+        "specificity_trap": 0.2083,
+        "sunk_cost_framing": 0.8571,
+        "temporal_category_error": 0.5,
+        "wrong_unit_of_analysis": 0.2667
+      },
+      "run_average_scores": {
+        "1": 0.5633
       },
       "run_average_stddev": null
     },
@@ -2703,29 +2808,29 @@
       {
         "judge_i": 1,
         "judge_j": 2,
-        "compared_rows": 7700,
-        "agreements": 6275,
-        "agreement_rate": 0.814935
+        "compared_rows": 8000,
+        "agreements": 6510,
+        "agreement_rate": 0.81375
       },
       {
         "judge_i": 1,
         "judge_j": 3,
-        "compared_rows": 7700,
-        "agreements": 6180,
-        "agreement_rate": 0.802597
+        "compared_rows": 8000,
+        "agreements": 6390,
+        "agreement_rate": 0.79875
       },
       {
         "judge_i": 2,
         "judge_j": 3,
-        "compared_rows": 7700,
-        "agreements": 5968,
-        "agreement_rate": 0.775065
+        "compared_rows": 8000,
+        "agreements": 6195,
+        "agreement_rate": 0.774375
       }
     ],
-    "average_pairwise_agreement": 0.797532,
-    "krippendorff_alpha_ordinal": 0.796124
+    "average_pairwise_agreement": 0.795625,
+    "krippendorff_alpha_ordinal": 0.794971
   },
-  "total_records": 7700,
+  "total_records": 8000,
   "total_error_records": 0,
-  "total_scored_records": 7700
+  "total_scored_records": 8000
 }

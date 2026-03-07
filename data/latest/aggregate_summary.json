@@ -451,6 +451,38 @@
       "run_average_stddev": null
     },
     {
+      "model": "meta-llama/llama-4-maverick@reasoning=default",
+      "count": 55,
+      "scored_count": 55,
+      "nonsense_count": 55,
+      "control_count": 0,
+      "score_0": 15,
+      "score_1": 10,
+      "score_2": 30,
+      "score_3": 0,
+      "avg_score": 1.2364,
+      "detection_rate_score_2": 0.5455,
+      "full_engagement_rate_score_0": 0.2727,
+      "control_correct_rate_score_3": null,
+      "error_count": 0,
+      "technique_breakdown": {
+        "authoritative_framing_of_nothing": 1.0555,
+        "causal_chimera": 1.9445,
+        "cross_domain_concept_stitching": 1.1905,
+        "false_granularity": 1.2778,
+        "inverted_nonexistent_dependency": 0.6191,
+        "misapplied_mechanism": 1.75,
+        "plausible_nonexistent_framework": 1.3333,
+        "reified_metaphor": 1.7333,
+        "temporal_category_error": 1.1333,
+        "wrong_unit_of_analysis": 0.7222
+      },
+      "run_average_scores": {
+        "1": 1.2364
+      },
+      "run_average_stddev": null
+    },
+    {
       "model": "anthropic/claude-3.7-sonnet@reasoning=default",
       "count": 55,
       "scored_count": 55,
@@ -671,6 +703,70 @@
       },
       "run_average_scores": {
         "1": 0.9394
+      },
+      "run_average_stddev": null
+    },
+    {
+      "model": "meta-llama/llama-4-scout@reasoning=default",
+      "count": 55,
+      "scored_count": 55,
+      "nonsense_count": 55,
+      "control_count": 0,
+      "score_0": 24,
+      "score_1": 11,
+      "score_2": 20,
+      "score_3": 0,
+      "avg_score": 0.8849,
+      "detection_rate_score_2": 0.3636,
+      "full_engagement_rate_score_0": 0.4364,
+      "control_correct_rate_score_3": null,
+      "error_count": 0,
+      "technique_breakdown": {
+        "authoritative_framing_of_nothing": 1.0556,
+        "causal_chimera": 1.8333,
+        "cross_domain_concept_stitching": 0.6667,
+        "false_granularity": 0.6111,
+        "inverted_nonexistent_dependency": 0.4762,
+        "misapplied_mechanism": 0.75,
+        "plausible_nonexistent_framework": 0.2222,
+        "reified_metaphor": 1.3333,
+        "temporal_category_error": 1.0667,
+        "wrong_unit_of_analysis": 0.6667
+      },
+      "run_average_scores": {
+        "1": 0.8849
+      },
+      "run_average_stddev": null
+    },
+    {
+      "model": "meta-llama/llama-3.1-8b-instruct@reasoning=default",
+      "count": 55,
+      "scored_count": 55,
+      "nonsense_count": 55,
+      "control_count": 0,
+      "score_0": 24,
+      "score_1": 12,
+      "score_2": 19,
+      "score_3": 0,
+      "avg_score": 0.8849,
+      "detection_rate_score_2": 0.3455,
+      "full_engagement_rate_score_0": 0.4364,
+      "control_correct_rate_score_3": null,
+      "error_count": 0,
+      "technique_breakdown": {
+        "authoritative_framing_of_nothing": 0.1667,
+        "causal_chimera": 1.5,
+        "cross_domain_concept_stitching": 1.0,
+        "false_granularity": 0.7778,
+        "inverted_nonexistent_dependency": 0.4762,
+        "misapplied_mechanism": 1.5,
+        "plausible_nonexistent_framework": 1.0,
+        "reified_metaphor": 1.2,
+        "temporal_category_error": 0.6667,
+        "wrong_unit_of_analysis": 0.8889
+      },
+      "run_average_scores": {
+        "1": 0.8849
       },
       "run_average_stddev": null
     },
@@ -2536,29 +2632,29 @@
       {
         "judge_i": 1,
         "judge_j": 2,
-        "compared_rows": 4343,
-        "agreements": 3418,
-        "agreement_rate": 0.787014
+        "compared_rows": 4508,
+        "agreements": 3539,
+        "agreement_rate": 0.785049
       },
       {
         "judge_i": 1,
         "judge_j": 3,
-        "compared_rows": 4337,
-        "agreements": 3611,
-        "agreement_rate": 0.832603
+        "compared_rows": 4502,
+        "agreements": 3730,
+        "agreement_rate": 0.828521
       },
       {
         "judge_i": 2,
         "judge_j": 3,
-        "compared_rows": 4337,
-        "agreements": 3373,
-        "agreement_rate": 0.777727
+        "compared_rows": 4502,
+        "agreements": 3507,
+        "agreement_rate": 0.778987
       }
     ],
-    "average_pairwise_agreement": 0.799115,
-    "krippendorff_alpha_ordinal": 0.778327
+    "average_pairwise_agreement": 0.797519,
+    "krippendorff_alpha_ordinal": 0.780201
   },
-  "total_records": 4345,
+  "total_records": 4510,
   "total_error_records": 8,
-  "total_scored_records": 4343
+  "total_scored_records": 4508
 }

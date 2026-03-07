@@ -2,6 +2,19 @@
 
 All notable benchmark, data, and viewer changes are tracked in this file.
 
+## [2.0.3] - 2026-03-07
+
+### Added
+- Added published v1 and v2 benchmark results for:
+  - `meta-llama/llama-4-maverick`
+  - `meta-llama/llama-4-scout`
+  - `meta-llama/llama-3.1-8b-instruct`
+- Added canonical launch-date metadata for the Meta models above so release-date and model-age charts include them.
+
+### Changed
+- Refreshed published viewer datasets in `data/latest/*` and `data/v2/latest/*` so [viewer/index.html](viewer/index.html) and [viewer/index.v2.html](viewer/index.v2.html) surface the new Meta rows.
+- Refreshed the GitHub-facing README chart screenshots in `docs/images/*` after publish so the static landing-page visuals match the latest viewer data.
+
 ## [2.0.2] - 2026-03-05
 
 ### Added
