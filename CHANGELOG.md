@@ -17,6 +17,7 @@ All notable benchmark, data, and viewer changes are tracked in this file.
 - Refreshed published viewer datasets in `data/latest/*` and `data/v2/latest/*` so [viewer/index.html](viewer/index.html) and [viewer/index.v2.html](viewer/index.v2.html) surface the new Meta rows.
 - Refreshed the GitHub-facing README chart screenshots in `docs/images/*` after publish so the static landing-page visuals match the latest viewer data.
 - Added model-size support to the viewers, including a v2 size-vs-detection scatter and a `Model Size` leaderboard column.
+- Split the v2 model-size panel into separate side-by-side total-parameter and active-parameter scatters so it matches the existing two-chart layout.
 
 ## [2.0.2] - 2026-03-05
 

@@ -1071,19 +1071,22 @@
       </section>
     </div>
 
-    <section class="panel">
-      <div class="reasoning-panel-head">
-        <h2 id="sizeScatterTitle" data-bench-heading="Do Bigger Models Perform Better?">BullshitBench v2: Do Bigger Models Perform Better?</h2>
-        <div class="reasoning-mode-switch" role="group" aria-label="Model size chart mode">
-          <button type="button" class="reasoning-mode-btn is-active" data-size-mode="total">Total Params</button>
-          <button type="button" class="reasoning-mode-btn" data-size-mode="active">Active Params</button>
-        </div>
-      </div>
-      <p class="subtle" id="sizeScatterSubtitle">Verified public parameter counts vs. green rate. Switch between total and active parameters when available.</p>
-      <div class="chart-legend" id="sizeScatterLegend"></div>
-      <svg id="sizeScatter" class="scatter-svg" viewBox="0 0 1200 420"></svg>
-      <p class="small-note" id="sizeScatterMeta"></p>
-    </section>
+    <div class="two-col">
+      <section class="panel">
+        <h2 data-bench-heading="Do Bigger Models Perform Better?">BullshitBench v2: Do Bigger Models Perform Better?</h2>
+        <p class="subtle">Public total parameter counts vs. green rate. The x-axis uses a log scale so 8B through 1T remain readable.</p>
+        <div class="chart-legend" id="sizeScatterTotalLegend"></div>
+        <svg id="sizeScatterTotal" class="scatter-svg" viewBox="0 0 600 420"></svg>
+        <p class="small-note" id="sizeScatterTotalMeta"></p>
+      </section>
+      <section class="panel">
+        <h2 data-bench-heading="Do Active Parameters Predict Detection?">BullshitBench v2: Do Active Parameters Predict Detection?</h2>
+        <p class="subtle">Activated parameter counts from public sources vs. green rate. Dense models appear when active parameters equal total.</p>
+        <div class="chart-legend" id="sizeScatterActiveLegend"></div>
+        <svg id="sizeScatterActive" class="scatter-svg" viewBox="0 0 600 420"></svg>
+        <p class="small-note" id="sizeScatterActiveMeta"></p>
+      </section>
+    </div>
 
     <!-- Leaderboard -->
     <section class="panel">
@@ -1289,7 +1292,6 @@ const S = {
   hiddenModels: new Set(), selectedMainChartModels: new Set(), selectedJudges: new Set([1,2,3]),
   modelChartFocusOrg: "all",
   reasoningScatterMode: "tokens",
-  sizeScatterMode: "total",
   topVariantsOnly: false,
   drilldown: null, lbSort: { key: "greenRate", direction: "desc" },
   tokenSort: "total",
@@ -3103,38 +3105,12 @@ function renderReasoningScatter(filtered) {
   });
 }
 
-function renderSizeScatter(filtered) {
-  const svg = document.getElementById("sizeScatter");
-  const metaEl = document.getElementById("sizeScatterMeta");
+function renderSizeScatterChart(filtered, options) {
+  const svg = document.getElementById(options.svgId);
+  const metaEl = document.getElementById(options.metaId);
   if (!svg) return;
 
-  const mode = S.sizeScatterMode === "active" ? "active" : "total";
-  const modeCfg = mode === "active"
-    ? {
-        metricKey: "activeParamsB",
-        headingSuffix: "Do Active Parameters Predict Detection?",
-        subtitle: "Activated parameter counts from public sources vs. green rate. Dense models appear when active parameters are disclosed or intentionally equal total.",
-        xAxisLabel: "Active Parameters (billions, log scale)",
-        tooltipLabel: "Active parameters",
-        emptyText: "No active-parameter metadata is available for the current filters.",
-      }
-    : {
-        metricKey: "totalParamsB",
-        headingSuffix: "Do Bigger Models Perform Better?",
-        subtitle: "Public total parameter counts vs. green rate. The x-axis uses a log scale so 8B through 1T remain readable.",
-        xAxisLabel: "Total Parameters (billions, log scale)",
-        tooltipLabel: "Total parameters",
-        emptyText: "No total-parameter metadata is available for the current filters.",
-      };
-  const metricKey = modeCfg.metricKey;
-  const titleEl = document.getElementById("sizeScatterTitle");
-  const subtitleEl = document.getElementById("sizeScatterSubtitle");
-  const cfg = currentBenchmarkConfig();
-  if (titleEl) titleEl.textContent = `${cfg.titlePrefix}: ${modeCfg.headingSuffix}`;
-  if (subtitleEl) subtitleEl.textContent = modeCfg.subtitle;
-  document.querySelectorAll("[data-size-mode]").forEach(btn => {
-    btn.classList.toggle("is-active", btn.getAttribute("data-size-mode") === mode);
-  });
+  const metricKey = options.metricKey;
 
   const byModel2 = groupBy(filtered, modelKey);
   const allPoints = [...byModel2.entries()].map(([mk, mRows]) => {
@@ -3158,15 +3134,15 @@ function renderSizeScatter(filtered) {
   const points = allPoints.filter(p => Number(p[metricKey]) > 0);
 
   if (!points.length) {
-    svg.innerHTML = `<text x="600" y="210" text-anchor="middle" fill="#5d726b" font-size="14">${esc(modeCfg.emptyText)}</text>`;
-    renderCompactScatterLegend("sizeScatterLegend", []);
+    svg.innerHTML = `<text x="300" y="210" text-anchor="middle" fill="#5d726b" font-size="14">${esc(options.emptyText)}</text>`;
+    renderCompactScatterLegend(options.legendId, []);
     if (metaEl) {
-      metaEl.textContent = `Showing 0 of ${allPoints.length} visible model variants with public ${mode === "active" ? "active" : "total"}-parameter metadata.`;
+      metaEl.textContent = `Showing 0 of ${allPoints.length} visible model variants with public ${options.metaLabel}-parameter metadata.`;
     }
     return;
   }
 
-  renderCompactScatterLegend("sizeScatterLegend", points, { maxOrgs: 6, expandable: true });
+  renderCompactScatterLegend(options.legendId, points, { maxOrgs: 6, expandable: true });
 
   const values = points.map(p => Number(p[metricKey]) || 0).filter(v => v > 0);
   const minMetric = Math.min(...values);
@@ -3175,7 +3151,7 @@ function renderSizeScatter(filtered) {
   const maxX = Math.max(maxMetric * 1.15, minX * 1.2);
   const logMin = Math.log10(minX);
   const logMax = Math.log10(maxX);
-  const W = 1200, H = 420, ml = 78, mr = 30, mt = 20, mb = 56;
+  const W = 600, H = 420, ml = 78, mr = 24, mt = 20, mb = 56;
   const pw = W - ml - mr, ph = H - mt - mb;
   const xFor = v => ml + ((Math.log10(Number(v) || minX) - logMin) / Math.max(1e-9, logMax - logMin)) * pw;
   const yFor = v => mt + ((100 - v) / 100) * ph;
@@ -3210,7 +3186,7 @@ function renderSizeScatter(filtered) {
 
   points.forEach(p => { p._cx = xFor(p[metricKey]); p._cy = yFor(p.greenRate); });
   const circles = points.map(p => `<circle cx="${p._cx.toFixed(1)}" cy="${p._cy.toFixed(1)}" r="4.5" fill="${orgColor(p.org)}" fill-opacity="0.85" stroke="#17211e" stroke-opacity="0.3" stroke-width="0.8"/>`).join("");
-  const labelCandidates = selectReasoningScatterLabelPoints(points, 10, metricKey);
+  const labelCandidates = selectReasoningScatterLabelPoints(points, 8, metricKey);
   const labelPlacements = placeLabelsGreedy(labelCandidates, {
     fontSize: 8.6, svgW: W, svgH: H, ml, mr, mt, mb,
     obstaclePoints: points, maxLabels: labelCandidates.length, dotRadius: 4, padding: 1.6,
@@ -3224,22 +3200,45 @@ function renderSizeScatter(filtered) {
   }).join("");
 
   svg.innerHTML = `${gridLines}${xGridLines}${trendHtml}${circles}${labelHalo}${labelsHtml}
-    <text x="${ml+pw/2}" y="${H-8}" text-anchor="middle" fill="#425851" font-size="12">${esc(modeCfg.xAxisLabel)}</text>
+    <text x="${ml+pw/2}" y="${H-8}" text-anchor="middle" fill="#425851" font-size="12">${esc(options.xAxisLabel)}</text>
     <text x="14" y="${mt+ph/2}" transform="rotate(-90,14,${mt+ph/2})" text-anchor="middle" fill="#425851" font-size="12">Green Rate (%)</text>`;
 
   if (metaEl) {
-    metaEl.textContent = `Showing ${points.length} of ${allPoints.length} visible model variants with public ${mode === "active" ? "active" : "total"}-parameter metadata.`;
+    metaEl.textContent = `Showing ${points.length} of ${allPoints.length} visible model variants with public ${options.metaLabel}-parameter metadata.`;
   }
   setupScatterTooltips(svg, points, metricKey, "greenRate", p => {
     const bits = [
       `<strong>${esc(p.label)}</strong>`,
       `Green: ${p.greenRate.toFixed(1)}%`,
-      `${esc(modeCfg.tooltipLabel)}: ${esc(fmtParamBillions(p[metricKey]))}`,
+      `${esc(options.tooltipLabel)}: ${esc(fmtParamBillions(p[metricKey]))}`,
     ];
     if (p.sizeDisplay && p.sizeDisplay !== fmtParamBillions(p[metricKey])) bits.push(`Size summary: ${esc(p.sizeDisplay)}`);
     if (p.openStatus) bits.push(`Access: ${esc(String(p.openStatus).replace(/_/g, " "))}`);
     if (p.modelLicense) bits.push(`License: ${esc(p.modelLicense)}`);
     return bits.join("<br>");
+  });
+}
+
+function renderSizeScatters(filtered) {
+  renderSizeScatterChart(filtered, {
+    svgId: "sizeScatterTotal",
+    legendId: "sizeScatterTotalLegend",
+    metaId: "sizeScatterTotalMeta",
+    metricKey: "totalParamsB",
+    xAxisLabel: "Total Parameters (billions, log scale)",
+    tooltipLabel: "Total parameters",
+    emptyText: "No total-parameter metadata is available for the current filters.",
+    metaLabel: "total",
+  });
+  renderSizeScatterChart(filtered, {
+    svgId: "sizeScatterActive",
+    legendId: "sizeScatterActiveLegend",
+    metaId: "sizeScatterActiveMeta",
+    metricKey: "activeParamsB",
+    xAxisLabel: "Active Parameters (billions, log scale)",
+    tooltipLabel: "Active parameters",
+    emptyText: "No active-parameter metadata is available for the current filters.",
+    metaLabel: "active",
   });
 }
 
@@ -3507,7 +3506,7 @@ function renderAll() {
   renderLaunchAllOrgs(filtered);
   renderAllModelsScatter(filtered);
   renderReasoningScatter(filtered);
-  renderSizeScatter(filtered);
+  renderSizeScatters(filtered);
   renderLeaderboard(filtered);
   renderCompare(filtered);
 }
@@ -3611,15 +3610,6 @@ function bindEvents() {
     S.reasoningScatterMode = next;
     renderAll();
   });
-  document.addEventListener("click", e => {
-    const btn = e.target.closest("[data-size-mode]");
-    if (!btn) return;
-    const next = btn.getAttribute("data-size-mode") === "active" ? "active" : "total";
-    if (S.sizeScatterMode === next) return;
-    S.sizeScatterMode = next;
-    renderAll();
-  });
-
   // Sticky domain bar
   document.getElementById("domainBar").addEventListener("click", e=>{
     const btn=e.target.closest("[data-domain-group]");
