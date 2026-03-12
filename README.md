@@ -6,16 +6,19 @@
 BullshitBench measures whether models detect nonsense, call it out clearly, and avoid confidently continuing with invalid assumptions.
 
 - Public viewer (latest): https://petergpt.github.io/bullshit-benchmark/viewer/index.v2.html
-- Updated: 2026-03-07
+- Updated: 2026-03-12
 
-## Latest Changelog Entry (2026-03-07)
+## Latest Changelog Entry (2026-03-12)
 
-- Added benchmark runs for:
-  - `meta-llama/llama-4-maverick`
-  - `meta-llama/llama-4-scout`
-  - `meta-llama/llama-3.1-8b-instruct`
-- Added canonical launch-date metadata for the Meta rows and propagated it across the published v1/v2 launch views so the release-date charts include them.
-- Refreshed the published viewer datasets and README chart screenshots so GitHub and the live viewer reflect the same latest data.
+- Added benchmark runs for the new Grok 4.20 variants across both published datasets:
+  - `x-ai/grok-4.20-beta`
+  - `x-ai/grok-4.20-multi-agent-beta`
+- Published the Grok 4.20 rows into both viewer tracks:
+  - `v1` (`data/latest`) with `55` questions
+  - `v2` (`data/v2/latest`) with `100` questions
+- Simplified the visible model labels in the viewers by dropping the `Beta` suffix from the Grok 4.20 display names while keeping the underlying model IDs unchanged.
+- Refined the main chart row-selection treatment to make model selection easier to see without overpowering the chart.
+- Updated org color mapping so `xAI` renders in black and `OpenAI` renders in green in the viewers.
 - Full details: [CHANGELOG.md](CHANGELOG.md)
 
 ## v2 Changelog Highlights
